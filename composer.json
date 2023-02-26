@@ -1,0 +1,18 @@
+{
+    "name": "rep98/collection",
+    "description": "Colección de Librerias para trabajar con php",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Rep98\\Collection\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "REP98",
+            "email": "delfinmundo@gmail.com"
+        }
+    ],
+    "require": {}
+}
