@@ -4,6 +4,7 @@ namespace Rep98\Collection\Helpers;
 
 use ArgumentCountError;
 use ArrayAccess;
+use Rep98\Collection\Exceptions\FileNotFound;
 
 /**
  * Arr
@@ -17,18 +18,20 @@ class Arr implements ArrayAccess
 	const DIFF_UASSOC = "uassoc";
 	const DIFF_UKEY = "ukey";
 
+	const UNDEFINED = "undefined";
+
 	/**
 	 * Matriz interna
 	 * @var array
 	 */
-	protected $items = [];
+	protected array $items = [];
 
 	// STATIC METHOD
 	/**
 	 * Singleton de Arr
 	 * @static
 	 * @param  mixed|array $array Matriz de Datos
-	 * @return \Rep98\EMW\Lib\Helpers\Arr
+	 * @return \Rep98\Collection\Lib\Helpers\Arr
 	 */
 	public static function from(mixed $array = []): static
 	{
@@ -56,15 +59,33 @@ class Arr implements ArrayAccess
 	 * @param  mixed $value Valores
 	 * @return array
 	 */
-	public static function wrap($value): array
+	public static function wrap($value = null): array
     {
         if (is_null($value)) {
             return [];
         }
-
+        if ($value instanceof Arr) {
+        	return $value->all();
+        }
         return is_array($value) ? $value : [$value];
     }
+    /**
+     * Intenta cargar una matriz desde un array
+     * @param  string $file ruta del archivo
+     * @return Arr|False
+     */
+    public static function loadPath(string $file): Arr|false
+    {
+    	if (!file_exists($file)) {
+    		throw new FileNotFound("File {$file} does not exist or cannot be loaded.", 1);
+    	}
+    	$arr = include $file;
 
+    	if (is_array($arr)) {
+    		return self::from($arr);
+    	}
+    	return false;
+    }
     /**
      * Determina si una matriz es asociativa.
      *
@@ -88,7 +109,7 @@ class Arr implements ArrayAccess
      * @param  array  $array
      * @return bool
      */
-    public static function isList($array): bool
+    public static function isList(array $array): bool
     {
         return !self::isAssoc($array);
     }
@@ -99,27 +120,13 @@ class Arr implements ArrayAccess
 	 */
 	public function __construct(mixed $array = [])
 	{
-		$this->addItem($array);
-	}
-	
-	/**
-	 * Añade o reemplaza el array actual
-	 * @example 
-	 *  $a = Array::from(['Dog', 'Cat'])->addItem(['MyKey' => 'MyValue']);
-	 *  print($a->all()) // Print [MyKey => 'MyValue']
-	 * @param mixed|array $array Matriz de reemplazo
-	 * @return \Rep98\EMW\Lib\Helpers\Arr
-	 */
-	public function addItem(mixed $array = []): Arr
-	{
 		$this->items = (array) $array;
-		return $this;
 	}
 	/**
 	 * Añade una elemento si no existe
 	 * @param string $key   la clave
 	 * @param mixed $value la value
-	 * @return \Rep98\EMW\Lib\Helpers\Arr
+	 * @return \Rep98\Collection\Helpers\Arr
 	 */
 	public function add($key, $value): Arr
 	{
@@ -189,9 +196,7 @@ class Arr implements ArrayAccess
         }
         
         return $array->count() == 0 ? $default : 
-        	($array->count() > 1 ? 
-        	$array->all() : 
-        	$array->all()[0]);
+        	($array->count() > 1 ? $array->all() : $array->all()[0]);
     }    	
 	/**
 	 * Verifica si existe una clave en la matriz
@@ -220,7 +225,12 @@ class Arr implements ArrayAccess
 		return in_array($value, $this->items, $strict);
 	}
 	
-	public function shuffle($seed = null): array
+	/**
+	 * Mezcla una Matriz
+	 * @param  int|null $seed Semilla de la Mezcla
+	 * @return array
+	 */
+	public function shuffle(int|null $seed = null): array
 	{
 		if (is_null($seed)) {
 			shuffle($this->items);
@@ -232,7 +242,11 @@ class Arr implements ArrayAccess
 
 		return $this->items;
 	}
-
+	/**
+	 * Comprobar si existe un índice
+	 * @param  mixed  $offset El índice a comprobar.
+	 * @return bool         
+	 */
 	public function offsetExists(mixed $offset): bool
 	{
 		$keys = (array) $offset;
@@ -258,75 +272,113 @@ class Arr implements ArrayAccess
 		}
 		return true;
 	}
-
+	/**
+	 * Asignar un valor al índice esepecificado
+	 * @param  mixed  $offset El offset al que se asigna el valor.
+	 * @param  mixed  $value  El valor a asignar.
+	 * @return void
+	 */
 	public function offsetSet(mixed $offset, mixed $value): void
 	{
 		$this->set($offset, $value);
 	}
-
+	/**
+	 * @see \Rep98\Collection\Helpers\Arr::get
+	 */
 	public function offsetGet(mixed $offset): mixed
 	{
 		return $this->get($offset);
 	}
-
+	/**
+	 * Destruye un offset
+	 * @param  mixed  $offset El offset a destruir.
+	 * @return void
+	 */
 	public function offsetUnset(mixed $offset): void
 	{
 		if ($this->offsetExists($offset)) {
 			$this->remove($offset);
 		}
 	}
-
+	/**
+	 * @see self::offsetExists
+	 */
 	public function has(mixed $offset): bool
 	{
 		return $this->offsetExists($offset);
 	}
-
+	/**
+	 * Extrae parte de una Array identificada por su claves
+	 * @param  mixed $keys La clave a identificar
+	 * @return array
+	 */
 	public function except($keys): array
 	{
 		return $this->remove($keys)->all();
 	}
-
+	/**
+	 * Divide un array en fragmentos
+	 * @param  int          $length        El tamaño de cada fragmento.
+	 * @param  bool $preserve_keys Cuando se establece en true las keys serán preservadas
+	 * @return array
+	 */
 	public function chunk(int $length, bool $preserve_keys = false): array
 	{
 		return array_chunk($this->items, $length, $preserve_keys);
 	}
-
-	public function column(int|string|null $column_key, int|string|null $index_key = null): array
+	/**
+	 * Devuelve los valores de una sola columna del array de entrada
+	 * @param  mixed   $column_key La columna de valores a devolver
+	 * @param  mixed   $index_key  La columna a usar como los índices/claves para el array devuelto
+	 * @return array
+	 */
+	public function column(mixed $column_key, mixed $index_key = null): array
 	{
 		return array_column($this->items, $column_key, $index_key);
 	}
-
-	public function combine(array $values): array
+	/**
+	 * Crea un nuevo array, usando una matriz para las claves y otra para sus valores
+	 * @param  array  $values Array de valores a usar
+	 * @return array
+	 */
+	public function combine(array $values): array|false
 	{
 		return array_combine($this->items, $values);
 	}
-
-	public function divide()
+	/**
+	 * Divide la matriz en una matriz multidimención compuesto de claves y valores
+	 * @return array
+	 */
+	public function divide(): array
 	{
 		return [array_keys($this->items), array_values($this->items)];
 	}
-
+	/**
+	 * Cuenta los items de una matriz o sus valores
+	 * @param  bool $countValue si es true contara los valores de la matriz
+	 * @return int|array
+	 */
 	public function count(bool $countValue = false): int|array
 	{
 		return $countValue ? array_count_values($this->items) : count($this->items);
 	}
 
+	/**
+	 * Calcula la diferencia entre arrays
+	 * @param array|string $flat Tipo de Calculo
+	 * @param callable|null|array $callback  Funciones o demas Matrices
+	 * @param ...array $array demas matrices
+	 * @return array
+	 */
 	public function diff(array|string $flat = self::DIFF, callable|null|array $callback = null, ...$array): array
 	{
-		if (is_array(func_get_arg(0))) {
+		if (is_array($flat)) {
 			$array = func_get_args();
 			$flat = self::DIFF;
 			$callback = null;
 		}
 		
-		if (is_callable(func_get_arg(0))) {
-			$flat = self::DIFF;
-			$array = func_get_args();
-			$callback = $array[0];
-			unset($array[0]);
-		}
-
-		if (is_callable(func_get_arg(1))) {
+		if (is_callable($callback)) {
 			$array = func_get_args();
 			if (is_string($array[0])) {
 				$flat = $array[0];
@@ -357,18 +409,30 @@ class Arr implements ArrayAccess
 
 		return [];		
 	}
-
+	/**
+	 * Añade y mescla matrices
+	 * @param  array $array Matrices a combinar con la matriz actual
+	 * @return array 
+	 */
 	public function merge(...$array): array
 	{
 		return array_merge($this->items, ...$array);
 	}
-
+	/**
+	 * Anade y mescla matrices de forma recursiva
+	 * @param  array $array Matrices a combinar
+	 * @return array
+	 */
 	public function mergeRecursive(...$array): array
 	{
 		return array_merge_recursive($this->items, ...$array);
 	}
-
-	public function extend($array)
+	/**
+	 * Extiende una matriz
+	 * @param  array $array Matriz a combinar
+	 * @return array
+	 */
+	public function extend(array $array): array
 	{
 		foreach ($array as $key => $value) {
 			if ($this->exists($key)) {
@@ -382,30 +446,48 @@ class Arr implements ArrayAccess
 
 		return $this->items;
 	}
-
-	public function filter(callable $callback)
+	/**
+	 * Filtra datos de una matriz 
+	 * @param  callable $callback Función de filtrado
+	 * @return array
+	 */
+	public function filter(callable $callback = null): array
 	{
 		return array_filter($this->items, $callback, ARRAY_FILTER_USE_BOTH);
 	}
-
-	public function filterNotNull()
+	/**
+	 * Filtra una matriz y elimina los valores nulos
+	 * @return array
+	 */
+	public function filterNotNull(): array
 	{
-		return $this->filter(function ($value) {
+		return $this->filter(function ($value, $key) {
 			return ! is_null($value);
 		});
-	}
-
-	public function flip()
+	} 
+	/**
+	 * Intercambia todas la claves por sus valores conviritendolo en una matriz asociativa
+	 * @param bool  $returnClass  Si  true retornara una instancia de `Arr`
+	 * @return array
+	 */
+	public function flip(bool $returnClass = false): Arr|array
 	{
-		return array_flip($this->items);
+		$newItems = array_flip($this->items);
+		return $returnClass ? new static($newItems) : $newItems;
 	}
-
-	public function first()
+	/**
+	 * Obtiene el valor del primer elemento
+	 * @return mixed
+	 */
+	public function first(): mixed
 	{
 		return $this->items[array_key_first($this->items)];
 	}
-
-	public function last()
+	/**
+	 * Obtiene el valor del Ultimo elemento
+	 * @return mixed
+	 */
+	public function last(): mixed
 	{
 		return $this->items[
 			array_key_last(
@@ -413,76 +495,117 @@ class Arr implements ArrayAccess
 			)
 		];
 	}
-
+	/**
+	 * Obtiene las claves de la matriz
+	 * @return array
+	 */
 	public function keys(): array
-	{
+	{	
 		return array_keys($this->items);
 	}
-
-	public function map(?callable $callback): array
+	/**
+	 * Mapea la matriz y retorna su valores por una funcion dada
+	 * @param  callable|null $callback la función a pasar o null para usar el mapeo natura
+	 * @return array
+	 */
+	public function map(?callable $callback = null): array
 	{
 		$keys = $this->keys();
 
 		try {
 			$items = array_map($callback, $this->items, $keys);
-		} catch (ArgumentCountError) {
+		} // @codeCoverageIgnoreStart
+		catch (ArgumentCountError) {
 			$items = array_map($callback, $this->items);
 		}
+		// @codeCoverageIgnoreEnd
 
 		return array_combine($keys,$items);
 	}
 
-
+	/**
+	 * Busca una clave por su valor
+	 * @param  mixed        $search_value el valor a buscar
+	 * @param  bool $strict       Indica si la busquedad debe ser estricta
+	 * @return array
+	 */
 	public function searchKeyByValue(mixed $search_value, bool $strict = false): array
 	{
 		return array_keys($this->items, $search_value, $strict);
 	}
-
+	/**
+	 * Busca un valor en la matriz y retorna su clave
+	 * @param  mixed        $needle El valor a Buscar
+	 * @param  bool $strict Indica si es stricto
+	 * @return int|string|false
+	 */
 	public function search(mixed $needle, bool $strict = false): int|string|false
 	{
 		return array_search($needle, $this->items, $strict);
 	}
-
-	public function only(mixed $keys)
+	/**
+	 * Retorna una matriz solo con las claves dadas
+	 * @param  mixed  $keys Lista de Claves
+	 * @return array
+	 */
+	public function only(mixed $keys): array
 	{
-		return array_intersect_key(
-			$this->items,
+		return $this->intersectByKeys(
 			array_flip( (array) $keys)
-		);
+		)->get();
 	}
-
-	public function intersect($items)
+	/**
+	 * Calcula la intersección de arrays
+	 * @param  arrat $items Un array con el que comparar los valores.
+	 * @return Arr
+	 */
+	public function intersect(array $items): Arr
 	{
 		return new static(array_intersect($this->items, $items));
 	}
-
-	public function intersectByKeys($items)
+	/**
+	 * Calcula la intersección de arrays usando sus claves para la comparación
+	 * @param  array $items Un array con el que comparar las claves.
+	 * @return Arr
+	 */
+	public function intersectByKeys(array $items): Arr
 	{
 		return new static(array_intersect_key($this->items, $items));
 	}
-
+	/**
+	 * Retorna toda la Matriz
+	 * @return array
+	 */
 	public function all(): array
 	{
 		return $this->items;
 	}
-
-	public function toJson(int $flags = 0)
+	/**
+	 * Retorna la matriz en formato JSON
+	 * @param  int $flags Máscara de bits, para conocerlas visite [Constantes de JSON.](https://www.php.net/manual/es/json.constants.php)
+	 * @return string
+	 */
+	public function toJson(int $flags = 0): string
 	{
 		return json_encode($this->items, $flags);
 	}
-
+	/**
+	 * Verifica si el Elemento esta Vacia
+	 * @return bool
+	 */
 	public function isEmpty(): bool
 	{
 		return empty($this->items);
 	}
-
-	public function join($glue, $finalGlue = '')
+	/**
+	 * Une elementos de un array en un string
+	 * @param  string $glue      Separador de los elementos
+	 * @param  string $finalGlue Separador final de los elementos
+	 * @return string
+	 */
+	public function join(string $glue, string $finalGlue = ''): string
 	{
-		if ($finalGlue === '') {
-            return implode($glue, $this->items);
-        }
-
-        if ($this->count() === 0) {
+		if ($this->count() === 0) {
             return '';
         }
 
@@ -490,28 +613,51 @@ class Arr implements ArrayAccess
             return end($this->items);
         }
 
+		if ($finalGlue === '') {
+            return implode($glue, $this->items);
+        }
+
         $finalItem = array_pop($this->items);
 
         return implode($glue, $this->items).$finalGlue.$finalItem;
 	}
-
+	/**
+	 * Rellena un array a la longitud especificada con un valor
+	 * @param  int    $length Nuevo tamaño del array.
+	 * @param  mixed  $value  Valor a rellenar si array es menor que `$length`.
+	 * @return array
+	 */
 	public function pad(int $length, mixed $value): array
 	{
 		return array_pad($this->items, $length, $value);
 	}
-
+	/**
+	 * Inserta uno o más elementos al final de un array
+	 * @param  mixed $values Valores a añadir
+	 * @return int
+	 */
 	public function push(mixed ...$values): int
 	{
 		return array_push($this->items, ...$values);
 	}
-
+	/**
+	 * Remueve un elemento y retora su valor
+	 * @param  mixed $key     La clave
+	 * @param  mixed $default El Valor por defecto a retornar si la clave no existe
+	 * @return mixed
+	 */
 	public function pull($key, $default = null)
 	{
 		$val = $this->get($key, $default);
 		$this->remove($key);
 		return $val;
 	}
-
+	/**
+	 * Añade un elemento al principio de la matriz
+	 * @param  mixed $value Los valores
+	 * @param  mixed $key   La nueva clave del valor
+	 * @return Arr
+	 */
 	public function prepend($value, $key = null): Arr
 	{
 		if (func_num_args() == 1) {
@@ -523,46 +669,37 @@ class Arr implements ArrayAccess
         return $this;
 	}
 
-	public function remove($key = null): Arr
+	/**
+	 * Remueve uno o varias elementos de la matriz por su claves
+	 * @param  mixed $keys La claves
+	 * @return Arr
+	 */
+	public function remove($keys = null): Arr
 	{
-		if (is_null($key)) {
+		if (is_null($keys)) {
 			$this->items = [];
 			return $this;
-		} 
-		$keys = (array) $key;
+		}
+
+		$keys = (array) $keys;
 		
 		if (count($keys) === 0) {
 			return $this;
-		} 
+		}
 
 		$original = &$this->items;
-		$array = $this->items;
+
+		$this->forget($this->items, $keys, $original);
 		
-		foreach ($keys as $key) {
-			if ($this->exists($key)) {
-				unset($array[$key]);
-				continue;
-			}
 
-			$parts = $this->dots($key);
-
-			$array = &$original;
-
-			while (count($parts) > 1) {
-				$part = array_shift($parts);
-				if (isset($array[$part])) {
-					$array = &$array[$part];
-				} else {
-					continue 2;
-				}
-			}
-
-			unset($array[array_shift($parts)]);
-		}
-		$this->items = $array;
 		return $this;
 	}
-
+	/**
+	 * Reemplaza los elementos del array original con elementos de array adicionales
+	 * @param  array|bool $recursive    Indica si el reemplazo es recursivo
+	 * @param  array      ...$replacements Arrays de los cuales se extraerán los elementos
+	 * @return array   
+	 */
 	public function replace(array|bool $recursive = false, ...$replacements): array
 	{
 		if (is_array(func_get_arg(0))) {
@@ -574,34 +711,56 @@ class Arr implements ArrayAccess
 			array_replace_recursive($this->items, ...$replacements) :
 			array_replace($this->items, ...$replacements);
 	}
-
+	/**
+	 * Devuelve un array con los elementos en orden inverso
+	 * @param  bool $preserve_keys Indica si se desea preservar las claves
+	 * @return array
+	 */
 	public function reverse(bool $preserve_keys = true): array
 	{
 		return array_reverse($this->items, $preserve_keys);
 	}
-
+	/**
+	 * Elimina valores duplicados de un array
+	 * @param int  $flags Se utiliza para modificar el tipo de orden usando, para saber más visite [`array-unique PHP`](https://www.php.net/manual/es/function.array-unique.php)
+	 * @return Arr
+	 */
 	public function unique(int $flags = SORT_STRING): Arr
 	{
 		$this->items = array_unique($this->items, $flags);
 		return $this;
 	}
-
-	public function union($items)
+	/**
+	 * Permite Unir la matriz actual con otra matriz similar a merge
+	 * @param  array $items la matriz para unificar
+	 * @return Arr
+	 */
+	public function union(array $items): Arr
 	{
 		return new static($this->items + $items);
 	}
-
-	public function values(): Arr
+	/**
+	 * Retorna los valores de la matriz
+	 * @return arrays
+	 */
+	public function values(): array
 	{
 		return array_values($this->items);
 	}
-
+	/**
+	 * Generar una cadena de consulta codificada estilo URL a partir de la matriz actual
+	 * @return string
+	 */
 	public function query(): string
 	{
 		return http_build_query($this->items, "", "&", PHP_QUERY_RFC3986);
 	}
-
-	public function sort($callback = null)
+	/**
+	 * Ordena la matriz actual
+	 * @param  mixed $callback función o nulo
+	 * @return Arr
+	 */
+	public function sort($callback = null): Arr
 	{
 		$items = $this->items;
 
@@ -611,8 +770,12 @@ class Arr implements ArrayAccess
 
         return new static($items);
 	}
-
-	public function sortDesc($options)
+	/**
+	 * Ordena una matriz de forma decendente
+	 * @param  int $options Se utiliza para modificar el tipo de orden usando 
+	 * @return Arr
+	 */
+	public function sortDesc(int $options = SORT_REGULAR): Arr
 	{
 		$items = $this->items;
 
@@ -620,8 +783,13 @@ class Arr implements ArrayAccess
 
         return new static($items);
 	}
-
-	public function sortKeys($options = SORT_REGULAR, $descending = false)
+	/**
+	 * Orderna la matriz por las claves
+	 * @param int $options Se utiliza para modificar el tipo de orden usando 
+	 * @param bool $descending Indica si es asedente o desendiente
+	 * @return Arr
+	 */
+	public function sortKeys(int $options = SORT_REGULAR, bool $descending = false): Arr
     {
         $items = $this->items;
 
@@ -631,42 +799,29 @@ class Arr implements ArrayAccess
     }
 
     /**
-     * Sort the collection keys in descending order.
+     * Orderna la matriz por las claves de forma desendente
      *
-     * @param  int  $options
-     * @return static
+     * @param  int  $options Se utiliza para modificar el tipo de orden usando 
+     * @return Arr
      */
-    public function sortKeysDesc(init $options = SORT_REGULAR)
+    public function sortKeysDesc(int $options = SORT_REGULAR): Arr
     {
         return $this->sortKeys($options, true);
     }
 
     /**
-     * Sort the collection keys using a callback.
+     * Ordene las claves de colección mediante una devolución de llamada.
      *
-     * @param  callable(TKey, TKey): int  $callback
+     * @param  callable(TKey, TKey): int  $callback La función de comparación
      * @return static
      */
-    public function sortKeysUsing(callable $callback)
+    public function sortKeysUsing(callable $callback): Arr
     {
         $items = $this->items;
 
         uksort($items, $callback);
 
         return new static($items);
-    }
-
-    public static function loadPath(string $file): Arr|bool
-    {
-    	if (!file_exists($file)) {
-    		throw new FileNotFound("File {$file} does not exist or cannot be loaded.", 1);
-    	}
-    	$arr = include $file;
-
-    	if (is_array($arr)) {
-    		return self::from($arr);
-    	}
-    	return false;
     }
 
     // Maggic
@@ -681,16 +836,11 @@ class Arr implements ArrayAccess
     	return $this->get($key);
     }
 
-	public function __serialize(): array
+	public function __toString()
 	{
-		return $this->items;
+		return $this->toJson();
 	}
-
-	public function __unserialize(array $serialized): void
-	{
-		$this->items = $this->merge($serialized);
-	}
-
+	
 	public function __destruct()
 	{
 		$this->items = [];
@@ -700,7 +850,8 @@ class Arr implements ArrayAccess
 
 	protected function dots($key): array
 	{
-		$keys = (array) $key;
+		$keys = self::wrap($key);
+		
 		if (is_array($key)) {
 			$keys = $key;
 		}
@@ -716,6 +867,34 @@ class Arr implements ArrayAccess
 		}
 
 		return $keys;
+	}
+
+	public function forget(&$array, $keys, &$original)
+	{
+		foreach ($keys as $key) {
+			if ($this->exists($key)) {
+				unset($array[$key]);
+				continue;
+			}
+
+			$parts = $this->dots($key);
+
+			$array = &$original;
+
+			while (count($parts) > 1) {
+				$part = array_shift($parts);
+
+				if (isset($array[$part])) {
+					$array = &$array[$part];
+				} else {
+					// @codeCoverageIgnoreStart
+					continue 2;
+					// @codeCoverageIgnoreEnd
+				}
+			}
+				
+			unset($array[array_shift($parts)]);
+		}
 	}
 }
 

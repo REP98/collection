@@ -2,28 +2,21 @@
 declare(strict_types=1);
 namespace Rep98\Collection\Exceptions;
 
-use JsonException;
-use Throwable;
+use RuntimeException;
 /**
  * JsonError 
  * Excepciones Para los Jsons
  */
-class JsonError extends JsonException
+class JsonError extends RuntimeException
 {
-	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
+	public function __construct()
 	{
-		parent::__construct($message, $code, $previous);
+		parent::__construct(json_last_error_msg(), json_last_error());
 	}
-	/**
-	 * Muestra el ultimo error generado por json_encode o json_decode
-	 * @return JsonException
-	 */
-	public static function msg(): JsonException
+
+	public function __toString()
 	{
-		return new static(
-			json_last_error_msg(),
-			json_last_error()
-		)
+		return "(".json_last_error().") ".json_last_error_msg();
 	}
 }
 ?>
