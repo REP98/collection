@@ -4,5 +4,6 @@
 /tests/html
 *.sublime*
 *.bak
-/tests/coverage-report
+/tests/coverage-report/
+/tests/coverage-report/*
 *.ico
