@@ -9,11 +9,12 @@ use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\BrowserConsoleHandler;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
+use Rep98\Collection\Interface\Configurable;
 /**
  * Log
  * Sistema de LOG para manejar registros
  */
-class Log
+class Log implements Configurable
 {
 	/**
 	 * Instacia de Monolog
@@ -42,6 +43,11 @@ class Log
 				"browser" => Expect::bool()->default(true)
 			])
 		]);
+	}
+
+	public static function getNameSchema(): string
+	{
+		return "logging";
 	}
 
 	/**

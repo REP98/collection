@@ -1,5 +1,8 @@
 <?php
 return [
+	"app" => [
+		"debug" => true
+	],
 	"database" => [
 		"driver"=> "mysql",
 		"port"=> 3306,

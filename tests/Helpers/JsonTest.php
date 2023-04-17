@@ -97,6 +97,7 @@ final class JsonTest extends TestCase
 		$this->assertIsArray($o->getData());
 
 		$this->assertEquals(["username" => "rep98"], $o->getData());
+		$this->assertFalse(Json::valid(null));
 	}
 	/*
 	public function testHeaderJson()

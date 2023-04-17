@@ -1,6 +1,10 @@
 {
     "name": "rep98/collection",
     "description": "Colección de Librerias para trabajar con php",
+    "keywords": [
+        "array", "str", "string", "helpers", "configuration",
+        "json", "log", "logging", "session"
+    ],
     "type": "library",
     "license": "MIT",
     "autoload": {
@@ -19,9 +23,11 @@
     "authors": [
         {
             "name": "Robert Pérez",
-            "email": "delfinmundo@gmail.com"
+            "email": "delfinmundo@gmail.com",
+            "homepage": "https://rep98.github.io"
         }
     ],
+    "homepage": "https://github.com/REP98/collection",
     "repositories": [
         {
             "type": "vcs",

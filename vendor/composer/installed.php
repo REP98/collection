@@ -3,7 +3,7 @@
         'name' => 'rep98/collection',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '100df72339565f0370bf5b8d8a614dcf20ced2e5',
+        'reference' => '989d503d755ae36da64991b9afc81d0c6307641c',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -208,7 +208,7 @@
         'rep98/collection' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '100df72339565f0370bf5b8d8a614dcf20ced2e5',
+            'reference' => '989d503d755ae36da64991b9afc81d0c6307641c',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

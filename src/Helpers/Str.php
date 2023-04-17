@@ -20,10 +20,11 @@ final class Str
     const LOWER_CASE = 100;
     const UPPER_CASE = 200;
 
+    // @codeCoverageIgnoreStart
 	private function __construct()
     {
     }
-
+    // @codeCoverageIgnoreEnd
     /**
      * Obtiene el valor del contenido antes del texto dado
      * @param  string      $haystack La cadena
@@ -571,10 +572,12 @@ final class Str
         $tableized = preg_replace('~(?<=\\w)([A-Z])~u', $delimiters.'$1', $value);
 
         if ($tableized === null) {
+            // @codeCoverageIgnoreStart
             throw new StringException(sprintf(
                 'preg_replace returned null for value "%s"',
                 $value
             ));
+            // @codeCoverageIgnoreEnd
         }
 
         return $lower ? self::lower($tableized) : $tableized;
@@ -630,7 +633,7 @@ final class Str
         bool $cut_long_words = false
     ): string
     {
-        if ($width <= self::length($string)) {
+        if ($width >= self::length($string)) {
             return $string;
         }
 

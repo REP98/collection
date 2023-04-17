@@ -6,6 +6,8 @@ use Rep98\Collection\Helpers\Config;
 use Rep98\Collection\Helpers\Str;
 use Nette\Schema\Schema;
 use Nette\Schema\Expect;
+use Rep98\Collection\Interface\Configurable;
+use Rep98\Collection\Traits\Instances;
 
 /**
  * Slug
@@ -13,6 +15,7 @@ use Nette\Schema\Expect;
  */
 class Slug
 {
+	use Instances;
 	private $SlugsOptions = [];
 	private $char_map = [
 		// Latin
@@ -98,6 +101,11 @@ class Slug
 			"replacements" =>  Expect::array()->default([]),
 			"transliterate" => Expect::bool()->default(true)
 		]);
+	}
+
+	public static function getNameSchema(): string
+	{
+		return "slug";
 	}
 	/**
 	 * Constructor de Slug

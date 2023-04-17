@@ -3,3 +3,6 @@
 *.lock
 /tests/html
 *.sublime*
+*.bak
+/tests/coverage-report
+*.ico

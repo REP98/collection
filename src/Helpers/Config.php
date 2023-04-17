@@ -1,204 +1,131 @@
-<?php 
+<?php
 declare(strict_types=1);
 namespace Rep98\Collection\Helpers;
 
-use Rep98\Collection\Helpers\Arr;
-use Rep98\Collection\Helpers\Json;
+use League\Config\Configuration;
+use Nette\Schema\Expect;
+use Rep98\Collection\Helpers\Env;
 use Rep98\Collection\Helpers\Log;
 use Rep98\Collection\Helpers\Slug;
-use League\Config\Configuration;
-use Nette\Schema\Schema;
-use Nette\Schema\Expect;
-use Rep98\Collection\Exceptions\MissingConfigException;
-use Dotenv\Dotenv;
-
+use Rep98\Collection\Traits\Instances;
 /**
  * Config
  */
 class Config
 {
-	private Configuration|null $config = null;
-	private static self|null $instance = null;
-	
-	protected function __construct()
-	{
-		$default = [
-			"app" => Expect::structure([
-				"debug" => Expect::bool()->default(true)
-			]),
-			"logging" => Log::getSchema(),
-			"slug" => Slug::getSchema()
-		];
+	use Instances;
+	/**
+	 * Motor de Configuraciones
+	 * @var \League\Config\Configuration
+	 */
+	protected Configuration $engine;
+	/**
+	 * Nombre de Clases por defecto a auto cargar
+	 * @var array
+	 */
+	protected array $nameClassDefault = [Log::class, Slug::class, Env::class];
+	/**
+	 * Squemas por defecto
+	 * @var array
+	 */
+	protected array $defaultSchema = [];
 
-		$this->config = new Configuration($default);
+	private function __construct(){
+		$this->engine = new Configuration();
 	}
 	/**
-	 * Cargador de Instancia de Configuraciones
+	 * Estabece las clases configurables a autocargar
+	 * @param array $nameClass
+	 * @return static
 	 */
-	public static function I(): Config
+	public static function setDefault(string|array $nameClass)
 	{
-		if (self::$instance === null) {
-			self::$instance = new self();
-		}
+		self::$instance->nameClassDefault = array_merge(
+			self::$instance->nameClassDefault,
+			(array) $nameClass
+		);
+
 		return self::$instance;
 	}
 	/**
-	 * Establece las configuraciones por defecto a utilizar
-	 * @param  array|string  $name   Nombre de la Configuraciones
-	 * @param  Schema $defaultConfig Esquema de configuraciones a establecer por defecto
-	 * @return Config
+	 * Establece los Squemas por defecto
+	 * @param array $baseSchemas matriz de esquemas
+	 * @return this
 	 */
-	public static function default(string|array $name, Schema $defaultConfig = null): Config
+	public function setSchema(array $baseSchemas = [])
 	{
-		if (is_array($name)) {
-			$c = self::I();
-			foreach ($name as $key => $value) {
-				if ($value instanceof Schema) {
-					$c->setSchema($key, $value);
-				}
-			}
-			return  $c;
-		}
-		
-		return self::I()->setSchema($name, $defaultConfig);
-	}
-	/**
-	 * Establece la configuraciones actuales
-	 * @param  array  $configure Matriz de configuraciones
-	 * @return Config
-	 */
-	public static function from(array $configure): Config
-	{
-		self::I();
-		self::$instance->config->merge($configure);
-		return self::$instance;
-	}
-	/**
-	 * Carga configuraciones desde un archivo `Json`
-	 * @param  string $file Ruta de archivos `Json`
-	 * @return Config
-	 */
-	public static function loadSettingsFromJson(string $file): Config
-	{
-		$json = Json::loadPath($file);
-	 	return self::from($json);
-	}
-	/**
-	 * Permite cargar configuracione desde una archivo de variable de entorno
-	 * @param  string $dir ruta del .env
-	 * @return Config      
-	 */
-	public static function loadSettingsFromEnv(string $name, string $dir = null): Config
-	{
-		if (is_null($dir) && defined("ROOT_ENV")) {
-			$dir = ROOT_ENV;
-		}
-		$dotenv = Dotenv::createImmutable($dir);
-		$dotenv->safeLoad();
-
-		$config = [];
-
-		if (!empty($_ENV)) {
-			foreach ($_ENV as $key => $value) {
-				$config[strtolower($key)] = value($value);
+		if (empty($this->engine)) {
+			$this->engine = new Configuration(
+				array_merge($this->defaultSchema, $baseSchemas)
+			);
+		} else {
+			foreach ($baseSchemas as $nameSchema => $value) {
+				$this->engine->addSchema($nameSchema, $value);
 			}
 		}
 		
-		return self::from([$name => $config]);
+		return $this; 
 	}
 	/**
-	 * Carga configuraciones desde un archivo `PHP`
-	 * @param  string $file Ruta del Archivo `PHP`
-	 * @return Config
+	 * Establece los esquemas por defecto de las clases de autocarga
+	 * @return static
 	 */
-	public static function loadSettingsFromFile(string $file): Config
+	public function default()
 	{
-		return self::from(Arr::loadPath($file)->all());
-	}
-	/**
-	 * Obtiene el valor de la configuración dada.
-	 * @param  mixed      $key     La clave a buscar, soporta la notación de puntos (.)
-	 * @param  mixed      $default EL valor por defecto en caso de que no exista
-	 * @return mixed
-	 */
-	public function get(mixed $key, mixed $default = null): mixed
-	{
-		try {
-			return $this->config->get($key);
-		} catch (MissingConfigException $e) {
-			if (self::exists("app.debug")) {
-				_log("warning", $e->getMessage());
+		foreach ($this->nameClassDefault as $nameSpace) {
+			$name = call_user_func_array([$nameSpace, "getNameSchema"], []);
+			$schema = call_user_func_array(
+				[$nameSpace, "getSchema"], 
+				[]
+			);
+			$this->defaultSchema[$name] = $schema;
+			if (!$this->engine->exists($name)) {
+				$this->engine->addSchema($name, $schema);
 			}
-			return $default;
-		}		
-	}
-	/**
-	 * Establece una configuración
-	 * @param mixed $key   La clave
-	 * @param mixed $value El valor
-	 * @return Config
-	 */
-	public function set(mixed $key, mixed $value): Config
-	{
-		$this->config->set($key, $value);
+		}
+
 		return $this;
 	}
 	/**
-	 * Verifica si una clave de configuración existe
-	 * @param  mixed  $key la clave
-	 * @return bool
+	 * Inicializa el motor de configuraciones
+	 * @param  array  $baseSchemas Esquema de configuraciones iniciales
+	 * @return static
 	 */
-	public function exists(mixed $key): bool
+	public static function start(array $baseSchemas = [])
 	{
-		try {
-			return $this->config->exists($key);
-		} catch (MissingConfigException $e) {
-			return false;
-		}
+		return self::I()->default()->setSchema($baseSchemas);
 	}
 	/**
-	 * Permite Establecer un esquema de configuraciones
-	 * @param string $key    El nombre del esquema
-	 * @param Schema $squema El Esquema
-	 * @return Config
+	 * Asigna y/o mezcla los parametros de configuración
+	 * @param  array  $data información de configuración
+	 * @return static
 	 */
-	public function setSchema(string $key, Schema $schema): Config
+	public static function from(array $data = [])
 	{
-		$this->config->addSchema($key, $schema);
-		return $this;
+		$i = self::I();
+		$i->merge($data);
+		return $i;
 	}
-	// Magic
-	public function __get(mixed $key)
+	/**
+	 * Magic
+	 */
+	public function __call($name, $args)
 	{
-		return $this->get(
-			$this->propertyDinamic($key), 
-			null
-		);
-	}
-
-	public function __set(mixed $key, mixed $value)
-	{
-		$this->set(
-			$this->propertyDinamic($key), 
-			$value
-		);
-	}
-
-	private function propertyDinamic(string $propertyName): string
-	{
-		if (str_contains($propertyName, "_")) {
-			$p = str_replace("_", ".", $propertyName);
-			if ($this->exists($p)) {
-				return $p;
-			}
+		if (method_exists($this->engine, $name)) {
+			return call_user_func_array([$this->engine, $name], $args);
 		}
-		return $propertyName;
+
+		throw new CollectionException("Method $name not exist ");
 	}
 
-	public function __destruct()
+	public function __set($key, $value)
 	{
-		$this->config = null;
-		self::$instance = null;
+		$this->engine->set($key, $value);
+	}
+
+	public function __get($key)
+	{
+		return $this->engine->get($key);
 	}
 }
 ?>

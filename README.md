@@ -1,15 +1,35 @@
 # Collection
-<p>Colección de Librerías Útiles para PHP</p>
+Conjunto de Librerías para PHP
 
-## Lista de Librerías
-### [Arr](wiki/Arr)
-<p>Manipulador de Matrices</p>
+## Librerías
+Aquí se muestra la lista de Librerías disponibles
 
-### Json
-<p>Manipulador de Json</p>
+### Helpers
+Librerías ayudantes que permite manejar múltiples datos.
 
-### Config
-<p>Gestor de Configuraciones</p>
+- [`Arr`](/wiki/Arr) Manipula las matrices.
+- [`Config`](/wiki/Config) Maneja las configuraciones de sus sistema
+- [`Env`](/wiki/Env) Maneja los archivos `.env`
+- [`Json`](/wiki/Json) Manipula los archivos Json
+- [`Log`](/wiki/Log) Almacenado de Registros
+- [`Md`](/wiki/Md) Maneja los elementos `Markdown`
+- [`Serializable`](/wiki/Serializable) Serializa un elemento para ser almacenado.
+- [`Slug`](/wiki/Slug) Genera una `url` amigable y valida.
+- [`Str`](/wiki/Str) Manejado de cadenas de texto.
+- [`Value`](/wiki/Value) Manejado de cadenas de valores.
 
-### Value
-<p>Gestor valores</p>
+### Http
+Libreria ayudante para manejo en el área HTTP
+
+- [`Session`](Session) Maneja las sessiones
+
+## Install
+```shell
+$ composer require rep98/collection
+```
+
+### Debug
+En la carpeta test se genera el coverage-report en html solo ejecute:
+```shell
+$ composer test
+```

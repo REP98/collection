@@ -17,10 +17,11 @@ final class Serializable
 	{
 		try {
 			return serialize($value);
+			// @codeCoverageIgnoreStart
 		} catch (SerializeError $e) {
-			var_dump($e);
-			//throw new SerializeError($e->getMessage());
+			throw new SerializeError($e->getMessage());
 		}
+		// @codeCoverageIgnoreEnd
 	}
 	/**
 	 * Crea un valor PHP a partir de una representación almacenada

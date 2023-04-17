@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Rep98\Collection\Test\Helpers;
 
+use Error;
 use PHPUnit\Framework\TestCase;
 use Doctrine\Inflector\Language;
 use Rep98\Collection\Helpers\Str;
@@ -188,6 +189,15 @@ class StrTest extends TestCase
 
 		$this->assertSame("Hello world!", Str::ucfirst("hello world!"));
 		$this->assertSame("Hello World!", Str::ucwords("hello world!"));
+		$this->assertSame("hello World!", Str::uncamel("helloWorld!", " "));
+		$this->assertEquals(3, Str::wordCount("Robert Pérez"));
+		$this->assertEquals("This is...", Str::wordTruncate("This is my name: robert", 2));
+		$this->assertEquals("Recorta palabras y separa en linea",Str::wordTruncate("Recorta palabras y separa en linea", 34));
+		$this->assertEquals("wordWrap", Str::wordWrap("wordWrap", 5));
+		$this->assertEquals("Recorta<br>palabras y<br>separa en<br>linea", 
+				Str::wordWrap("Recorta palabras y separa en linea", 10, "<br>"));
+		$this->assertEquals("Recorta palabras y separa en linea", 
+				Str::wordWrap("Recorta palabras y separa en linea", 37, "<br>"));
 	}
 	/**
 	 * @uses voku\helper\ASCII
@@ -247,6 +257,12 @@ class StrTest extends TestCase
 	{
 		$this->expectException(StringException::class);
 		Str::snake("This mode is not valid", "-", Str::LOWER_CASE);
+	}
+
+	public function testExceptionConstruct()
+	{
+		$this->expectException(Error::class);
+		new Str();
 	}
 }
 ?>
