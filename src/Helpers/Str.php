@@ -82,12 +82,13 @@ final class Str
      * 
      * @param  string  $value La cadena
      * @param int $mode El estilo de camelCase obtenido
+     * @param string $patter El patron por el cual se va seaparar por defecto es \s que indica los espacion
      * @return string
      */
-    public static function camel(string $value, int $mode = self::LOWER_CASE): string
+    public static function camel(string $value, int $mode = self::LOWER_CASE, string $patter = "\s"): string
     {
         $string = preg_replace(
-            "/\s+/u",
+            "/$patter+/u",
             "",
             self::convertCase($value, MB_CASE_TITLE, "UTF-8")
         );

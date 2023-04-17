@@ -7,3 +7,4 @@
 /tests/coverage-report/
 /tests/coverage-report/*
 *.ico
+*.zip
